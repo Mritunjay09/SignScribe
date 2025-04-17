@@ -1,10 +1,11 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import Tutorials from "./pages/Tutorials";
+import VideoChat from "./pages/VideoChat";
 import Practice from "./pages/Practice";
 import Dictionary from "./pages/Dictionary";
 import Community from "./pages/Community";
@@ -20,7 +21,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/tutorials" element={<Tutorials />} />
+          <Route path="/chat" element={<VideoChat />} />
           <Route path="/practice" element={<Practice />} />
           <Route path="/dictionary" element={<Dictionary />} />
           <Route path="/community" element={<Community />} />
