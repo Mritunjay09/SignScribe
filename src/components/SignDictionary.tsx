@@ -44,16 +44,156 @@ const mockSigns = [
     ],
     tips: "This is one of the most important signs to know for basic communication."
   },
-  { id: 3, name: "Please", category: "Courtesy", difficulty: "Easy", imagePath: "/placeholder.svg" },
-  { id: 4, name: "Sorry", category: "Courtesy", difficulty: "Medium", imagePath: "/placeholder.svg" },
-  { id: 5, name: "Help", category: "Common", difficulty: "Medium", imagePath: "/placeholder.svg" },
-  { id: 6, name: "Name", category: "Questions", difficulty: "Easy", imagePath: "/placeholder.svg" },
-  { id: 7, name: "Where", category: "Questions", difficulty: "Medium", imagePath: "/placeholder.svg" },
-  { id: 8, name: "When", category: "Questions", difficulty: "Medium", imagePath: "/placeholder.svg" },
-  { id: 9, name: "Family", category: "Relationships", difficulty: "Hard", imagePath: "/placeholder.svg" },
-  { id: 10, name: "Friend", category: "Relationships", difficulty: "Medium", imagePath: "/placeholder.svg" },
-  { id: 11, name: "Love", category: "Emotions", difficulty: "Easy", imagePath: "/placeholder.svg" },
-  { id: 12, name: "Happy", category: "Emotions", difficulty: "Easy", imagePath: "/placeholder.svg" },
+  { 
+    id: 3, 
+    name: "Please", 
+    category: "Courtesy", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "The sign for 'Please' is made by placing your flat hand on your chest and moving it in a circular motion clockwise. It shows politeness and respect.",
+    steps: [
+      "Place your dominant hand flat against the center of your chest",
+      "Move your hand in a circular motion clockwise",
+      "Keep your facial expression pleasant",
+      "Make the motion once or twice"
+    ],
+    tips: "The circular motion should be smooth and deliberate, not too large or exaggerated."
+  },
+  { 
+    id: 4, 
+    name: "Sorry", 
+    category: "Courtesy", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "To sign 'Sorry', make a fist with your right hand, and rub it in a circular motion over your heart. The expression on your face should also show remorse.",
+    steps: [
+      "Make a fist with your dominant hand",
+      "Place it over your heart (center of chest)",
+      "Rub in a circular motion",
+      "Show a genuinely apologetic facial expression"
+    ],
+    tips: "The sincerity of your facial expression is as important as the hand movement itself."
+  },
+  { 
+    id: 5, 
+    name: "Help", 
+    category: "Common", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "The sign for 'Help' looks like one hand helping or lifting the other. Your dominant hand forms a thumbs-up and lifts your non-dominant flat hand.",
+    steps: [
+      "Place your non-dominant hand out flat, palm up",
+      "Make a thumbs-up with your dominant hand",
+      "Place your dominant hand under your non-dominant hand",
+      "Lift both hands together slightly"
+    ],
+    tips: "Think of it as one hand literally helping or lifting the other hand up."
+  },
+  { 
+    id: 6, 
+    name: "Name", 
+    category: "Questions", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "To sign 'Name', extend your index and middle fingers of both hands and tap them together twice. This simulates two people meeting and exchanging names.",
+    steps: [
+      "Extend the index and middle fingers of both hands (like making 'peace signs')",
+      "Hold your hands in front of you, palms facing each other",
+      "Tap the extended fingers of both hands together twice",
+      "Maintain eye contact with the person you're asking"
+    ],
+    tips: "When asking someone's name, pair this sign with a questioning facial expression."
+  },
+  { 
+    id: 7, 
+    name: "Where", 
+    category: "Questions", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "The sign for 'Where' is made by shaking your index finger pointing in different directions with a questioning look, as if you're searching for something.",
+    steps: [
+      "Hold your dominant hand up with index finger extended (rest of fingers in a loose fist)",
+      "Point your index finger in different directions (left, right, forward)",
+      "Make a questioning facial expression with raised eyebrows",
+      "Move your hand slightly as you change direction"
+    ],
+    tips: "Your facial expression is crucial—raise your eyebrows to show it's a question."
+  },
+  { 
+    id: 8, 
+    name: "When", 
+    category: "Questions", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "To sign 'When', form your non-dominant hand into a 'C' shape, and tap the index finger of your dominant hand into the 'C' shape, while raising your eyebrows.",
+    steps: [
+      "Form a 'C' shape with your non-dominant hand, palm facing sideways",
+      "Extend the index finger of your dominant hand",
+      "Tap your index finger into the 'C' shape",
+      "Raise your eyebrows to indicate a question"
+    ],
+    tips: "The 'C' hand shape represents a clock face, symbolizing time."
+  },
+  { 
+    id: 9, 
+    name: "Family", 
+    category: "Relationships", 
+    difficulty: "Hard", 
+    imagePath: "/placeholder.svg",
+    description: "The sign for 'Family' is made by first signing an 'F' handshape (index finger and thumb touching, other fingers extended) and then making a circle motion to include everyone.",
+    steps: [
+      "Make an 'F' handshape with both hands (index finger and thumb touching, other fingers extended)",
+      "Start with both hands close to your chest",
+      "Move both hands outward in a circular motion",
+      "End with hands slightly apart to indicate inclusivity"
+    ],
+    tips: "The circular motion represents bringing everyone in the family together as a unit."
+  },
+  { 
+    id: 10, 
+    name: "Friend", 
+    category: "Relationships", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "To sign 'Friend', hook your index fingers together, first one way and then the other. This represents two people linked or connected.",
+    steps: [
+      "Hold both hands in front of you with index fingers extended (other fingers in a fist)",
+      "Hook your index fingers together",
+      "Unhook and reverse the direction (hook them the other way)",
+      "Do this motion smoothly"
+    ],
+    tips: "Think of it as two people becoming linked or connected in friendship."
+  },
+  { 
+    id: 11, 
+    name: "Love", 
+    category: "Emotions", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "The sign for 'Love' is made by crossing your arms over your chest, like giving yourself a hug. It's one of the most recognizable signs in ASL.",
+    steps: [
+      "Make fists with both hands, with thumbs extended upward",
+      "Cross your arms over your chest (dominant arm on top)",
+      "Touch your shoulders or upper chest with your fists",
+      "Your expression should match the warmth of the word"
+    ],
+    tips: "This sign looks like hugging yourself, which represents the warmth of love."
+  },
+  { 
+    id: 12, 
+    name: "Happy", 
+    category: "Emotions", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "The sign for 'Happy' involves brushing your open hands up your chest and outward several times, like happiness flowing outward from your heart.",
+    steps: [
+      "Start with both open hands in front of your chest, palms facing your body",
+      "Move both hands upward and outward in a repeated motion (2-3 times)",
+      "Smile while making the sign",
+      "The motion should be light and cheerful"
+    ],
+    tips: "Your facial expression is very important when signing emotions—make sure to smile!"
+  },
 ];
 
 interface SignCardProps {
