@@ -1,15 +1,49 @@
-
 import { useState } from "react";
-import { Search, Filter, ChevronRight } from "lucide-react";
+import { Search, Filter, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Dialog,
+  DialogContent, 
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
 
 // Mock data for sign dictionary
 const mockSigns = [
-  { id: 1, name: "Hello", category: "Greetings", difficulty: "Easy", imagePath: "/placeholder.svg" },
-  { id: 2, name: "Thank You", category: "Courtesy", difficulty: "Easy", imagePath: "/placeholder.svg" },
+  { 
+    id: 1, 
+    name: "Hello", 
+    category: "Greetings", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "The sign for 'Hello' is made by extending your hand with your palm facing forward, fingers pointing up, and moving your hand in an arc from the side of your head outward, as if you're waving.",
+    steps: [
+      "Face your palm outward, with fingers pointing up",
+      "Keep your elbow at your side",
+      "Move your hand in an arc away from your body",
+      "Smile while making this gesture for added friendliness"
+    ],
+    tips: "Keep the movement relaxed and natural, like a traditional wave."
+  },
+  { 
+    id: 2, 
+    name: "Thank You", 
+    category: "Courtesy", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "To sign 'Thank You', extend your flat hand with fingers together from your chin forward. It's like blowing a kiss from your chin or mouth.",
+    steps: [
+      "Touch your chin or lips with the fingertips of your flat hand",
+      "Move your hand forward and slightly up",
+      "End with your palm facing up",
+      "Make sure to maintain eye contact"
+    ],
+    tips: "This is one of the most important signs to know for basic communication."
+  },
   { id: 3, name: "Please", category: "Courtesy", difficulty: "Easy", imagePath: "/placeholder.svg" },
   { id: 4, name: "Sorry", category: "Courtesy", difficulty: "Medium", imagePath: "/placeholder.svg" },
   { id: 5, name: "Help", category: "Common", difficulty: "Medium", imagePath: "/placeholder.svg" },
@@ -27,9 +61,10 @@ interface SignCardProps {
   category: string;
   difficulty: string;
   imagePath: string;
+  onLearnClick: () => void;
 }
 
-function SignCard({ name, category, difficulty, imagePath }: SignCardProps) {
+function SignCard({ name, category, difficulty, imagePath, onLearnClick }: SignCardProps) {
   let difficultyColor = "bg-green-100 text-green-700";
   if (difficulty === "Medium") {
     difficultyColor = "bg-yellow-100 text-yellow-700";
@@ -56,7 +91,11 @@ function SignCard({ name, category, difficulty, imagePath }: SignCardProps) {
             </span>
           </div>
           <p className="text-sm text-slate-400 mb-3">{category}</p>
-          <Button variant="ghost" className="w-full justify-between text-purple hover:text-purple-dark hover:bg-purple-50">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-between text-purple hover:text-purple-dark hover:bg-purple-50"
+            onClick={onLearnClick}
+          >
             Learn Sign
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -66,10 +105,79 @@ function SignCard({ name, category, difficulty, imagePath }: SignCardProps) {
   );
 }
 
+interface SignDetailProps {
+  sign: {
+    name: string;
+    category: string;
+    difficulty: string;
+    imagePath: string;
+    description?: string;
+    steps?: string[];
+    tips?: string;
+  } | null;
+}
+
+function SignDetail({ sign }: SignDetailProps) {
+  if (!sign) return null;
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="bg-slate-50 p-6 rounded-lg flex items-center justify-center">
+        <img 
+          src={sign.imagePath} 
+          alt={`Sign for ${sign.name}`} 
+          className="w-full max-h-80 object-contain"
+          style={{ filter: "hue-rotate(220deg)" }}
+        />
+      </div>
+      
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="text-2xl font-bold">{sign.name}</h2>
+          <span className={`text-xs px-2 py-1 rounded-full ${
+            sign.difficulty === "Easy" ? "bg-green-100 text-green-700" : 
+            sign.difficulty === "Medium" ? "bg-yellow-100 text-yellow-700" : 
+            "bg-red-100 text-red-700"
+          }`}>
+            {sign.difficulty}
+          </span>
+          <span className="text-sm text-slate-400">{sign.category}</span>
+        </div>
+        
+        {sign.description && (
+          <div className="mb-4">
+            <p className="text-gray-700">{sign.description}</p>
+          </div>
+        )}
+        
+        {sign.steps && sign.steps.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">Steps</h3>
+            <ol className="list-decimal pl-5 space-y-1">
+              {sign.steps.map((step, index) => (
+                <li key={index} className="text-gray-700">{step}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+        
+        {sign.tips && (
+          <div className="mt-4 bg-purple-50 p-3 rounded-md">
+            <h3 className="text-sm font-semibold text-purple mb-1">Tip</h3>
+            <p className="text-sm text-gray-700">{sign.tips}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SignDictionary() {
   const [searchTerm, setSearchTerm] = useState("");
   const categories = ["All", "Greetings", "Courtesy", "Questions", "Relationships", "Emotions", "Common"];
   const [activeCategory, setActiveCategory] = useState("All");
+  const [selectedSign, setSelectedSign] = useState<typeof mockSigns[0] | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // Filter signs based on search and category
   const filteredSigns = mockSigns.filter(sign => {
@@ -77,6 +185,11 @@ export function SignDictionary() {
     const matchesCategory = activeCategory === "All" || sign.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const handleLearnClick = (sign: typeof mockSigns[0]) => {
+    setSelectedSign(sign);
+    setIsDialogOpen(true);
+  };
 
   return (
     <div>
@@ -121,6 +234,7 @@ export function SignDictionary() {
             category={sign.category}
             difficulty={sign.difficulty}
             imagePath={sign.imagePath}
+            onLearnClick={() => handleLearnClick(sign)}
           />
         ))}
         
@@ -130,6 +244,18 @@ export function SignDictionary() {
           </div>
         )}
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Learn Sign</DialogTitle>
+            <DialogDescription>
+              Study the gesture and follow the instructions below.
+            </DialogDescription>
+          </DialogHeader>
+          <SignDetail sign={selectedSign} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
