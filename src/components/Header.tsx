@@ -21,12 +21,12 @@ export function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex space-x-6">
           <NavLink 
-            to="/tutorials" 
+            to="/chat" 
             className={({ isActive }) => 
               isActive ? "text-purple font-medium" : "text-slate hover:text-purple transition-colors"
             }
           >
-            Tutorials
+            Video Chat
           </NavLink>
           <NavLink 
             to="/practice" 
@@ -73,13 +73,13 @@ export function Header() {
         <div className="md:hidden bg-white absolute w-full border-b border-slate-100 shadow-md z-50">
           <div className="flex flex-col p-4 space-y-4">
             <NavLink 
-              to="/tutorials" 
+              to="/chat" 
               className={({ isActive }) => 
                 isActive ? "text-purple font-medium" : "text-slate hover:text-purple transition-colors"
               }
               onClick={() => setMobileMenuOpen(false)}
             >
-              Tutorials
+              Video Chat
             </NavLink>
             <NavLink 
               to="/practice" 
