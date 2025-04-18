@@ -25,13 +25,7 @@ export function SignDetailsDialog({ sign, isOpen, onClose }: SignDetailsDialogPr
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">{sign.name}</DialogTitle>
-          <Button
-            variant="ghost"
-            className="absolute right-4 top-4"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          {/* Removed the duplicate close button that was here */}
         </DialogHeader>
         <div className="mt-4">
           <div className="flex gap-2 mb-4">
