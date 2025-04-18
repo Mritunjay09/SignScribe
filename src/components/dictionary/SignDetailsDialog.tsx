@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { SignEntry } from "@/types/dictionary";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface SignDetailsDialogProps {
   sign: SignEntry | null;
@@ -40,6 +41,15 @@ export function SignDetailsDialog({ sign, isOpen, onClose }: SignDetailsDialogPr
             <span className="bg-slate-100 text-slate px-2 py-1 rounded-full text-sm">
               {sign.difficulty}
             </span>
+          </div>
+
+          <div className="flex justify-center mb-6">
+            <Avatar className="h-40 w-40">
+              <AvatarImage src={sign.imagePath} alt={sign.name} />
+              <AvatarFallback className="bg-purple-100 text-purple text-4xl">
+                {sign.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
           </div>
           
           <DialogDescription className="text-base text-slate-700 mb-4">
