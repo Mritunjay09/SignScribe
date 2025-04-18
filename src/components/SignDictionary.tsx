@@ -194,6 +194,156 @@ const mockSigns = [
     ],
     tips: "Your facial expression is very important when signing emotions—make sure to smile!"
   },
+  { 
+    id: 13, 
+    name: "How are you?", 
+    category: "Greetings", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "This sign combines 'how' and 'you' gestures. Start with the 'how' sign by making a questioning face and moving your hands, then point to the person you're addressing.",
+    steps: [
+      "Make a questioning facial expression",
+      "Hold your hands palm up in front of you",
+      "Move your hands slightly outward and upward",
+      "Point to the person you're addressing"
+    ],
+    tips: "Your facial expression is crucial for this sign - make sure to show genuine interest."
+  },
+  { 
+    id: 14, 
+    name: "What is your name?", 
+    category: "Questions", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "This combines the signs for 'what' and 'name'. First make the 'what' sign, then the name sign by tapping your index and middle fingers together.",
+    steps: [
+      "Start with the 'what' sign - shaking your index finger side to side",
+      "Then make the 'name' sign by extending index and middle fingers of both hands",
+      "Tap these fingers together twice",
+      "End with a questioning expression"
+    ],
+    tips: "Keep the movement fluid between the 'what' and 'name' signs for natural conversation."
+  },
+  { 
+    id: 15, 
+    name: "Can you help?", 
+    category: "Questions", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "Combine the signs for 'can' and 'help'. The help sign looks like one hand helping or lifting the other.",
+    steps: [
+      "Start with 'can' by making two 'C' hands and moving them up slightly",
+      "Then make the 'help' sign by placing your dominant fist under your non-dominant flat palm",
+      "Lift both hands together",
+      "Show a questioning expression"
+    ],
+    tips: "The motion should be smooth and natural, showing genuine need for assistance."
+  },
+  { 
+    id: 16, 
+    name: "Good morning", 
+    category: "Greetings", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "Combine the signs for 'good' and 'morning'. The morning sign is like showing the sun rising.",
+    steps: [
+      "Start with the 'good' sign - touch your chin with your flat right hand",
+      "Move your hand down and out",
+      "For 'morning', bring your bent arm up like a rising sun",
+      "Keep your facial expression bright and welcoming"
+    ],
+    tips: "This is a common greeting, so practice until it feels natural and fluid."
+  },
+  { 
+    id: 17, 
+    name: "Can you repeat?", 
+    category: "Questions", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "The sign for 'repeat' involves rotating your index fingers around each other in a circular motion.",
+    steps: [
+      "Hold both hands up with index fingers extended",
+      "Make circular motions with your index fingers around each other",
+      "Add a questioning expression",
+      "Make the motion twice for emphasis if needed"
+    ],
+    tips: "This is a very useful sign to know when learning. Don't be afraid to use it often!"
+  },
+  { 
+    id: 18, 
+    name: "Yes, I understand", 
+    category: "Common", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "Combine the signs for 'yes' and 'understand'. The understand sign looks like knowledge entering your head.",
+    steps: [
+      "Start with the 'yes' sign - make a fist that nods like a head nodding",
+      "Then make the 'understand' sign by touching your temple",
+      "Move your hand forward from your temple",
+      "Nod your head while signing for emphasis"
+    ],
+    tips: "Your facial expression should show confidence and comprehension."
+  },
+  { 
+    id: 19, 
+    name: "No, I don't know", 
+    category: "Common", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "Combine the signs for 'no' and 'don't know'. The don't know sign looks like shrugging.",
+    steps: [
+      "Start with the 'no' sign - extending index and middle fingers, moving them side to side",
+      "Then shrug your shoulders slightly",
+      "Raise your hands palm up at shoulder level",
+      "Show a slightly confused expression"
+    ],
+    tips: "Keep the movement natural and don't exaggerate the shrug too much."
+  },
+  { 
+    id: 20, 
+    name: "Thank you, that's nice", 
+    category: "Courtesy", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "Combine the signs for 'thank you' and 'nice'. The nice sign is similar to good but with a different motion.",
+    steps: [
+      "Start with 'thank you' by touching your chin and moving forward",
+      "Then make the 'nice' sign by placing your flat hand on your chest",
+      "Move your hand in a small circle on your chest",
+      "Smile while signing"
+    ],
+    tips: "This is a great way to show appreciation. Make sure your facial expression matches your gratitude."
+  },
+  { 
+    id: 21, 
+    name: "What do you like?", 
+    category: "Questions", 
+    difficulty: "Medium", 
+    imagePath: "/placeholder.svg",
+    description: "Combine the signs for 'what' and 'like'. The like sign is made by moving your flat hand up your chest.",
+    steps: [
+      "Start with the 'what' sign - shake your index finger",
+      "Then make the 'like' sign by placing your flat hand on your chest",
+      "Move your hand upward on your chest",
+      "End with a questioning expression"
+    ],
+    tips: "Make sure to show interest in your facial expression when asking this question."
+  },
+  { 
+    id: 22, 
+    name: "Tell me more", 
+    category: "Common", 
+    difficulty: "Easy", 
+    imagePath: "/placeholder.svg",
+    description: "Combine the signs for 'tell' and 'more'. The more sign looks like bringing things together.",
+    steps: [
+      "Start with the 'tell' sign - index finger moving from your mouth outward",
+      "Then make the 'more' sign by bringing your fingers together repeatedly",
+      "Keep your movements clear and deliberate",
+      "Show interest in your facial expression"
+    ],
+    tips: "This is a great way to encourage conversation and show you're engaged."
+  }
 ];
 
 // Mock data for alphabet signs
@@ -567,246 +717,4 @@ const alphabetSigns = [
     imagePath: "/placeholder.svg",
     description: "The sign for 'Y' is made by extending your thumb and pinky finger outward while keeping your other fingers closed.",
     steps: [
-      "Extend your thumb and pinky finger outward",
-      "Keep your index, middle, and ring fingers closed against your palm",
-      "Position your palm facing forward",
-      "Hold the shape clearly with thumb and pinky well extended"
-    ],
-    tips: "The 'Y' handshape resembles the letter when viewed from the front. This shape is also used to represent 'hang loose' or 'call me' in some contexts."
-  },
-  { 
-    id: 26, 
-    name: "Z", 
-    category: "Alphabet", 
-    difficulty: "Hard", 
-    imagePath: "/placeholder.svg",
-    description: "The sign for 'Z' is made by forming the letter Z in the air with your index finger, starting with a horizontal stroke to the side, then a diagonal stroke downward, and ending with another horizontal stroke.",
-    steps: [
-      "Extend your index finger, keeping other fingers closed",
-      "Trace the letter Z in the air with your extended index finger",
-      "Start with a horizontal line from left to right",
-      "Then draw a diagonal line downward",
-      "End with another horizontal line from left to right",
-      "Make the motion clear and deliberate"
-    ],
-    tips: "Like 'J', this is one of the few letters that requires movement. Practice the three distinct strokes of the Z to make this sign clear to others."
-  }
-];
-
-interface SignCardProps {
-  name: string;
-  category: string;
-  difficulty: string;
-  imagePath: string;
-  onLearnClick: () => void;
-}
-
-function SignCard({ name, category, difficulty, imagePath, onLearnClick }: SignCardProps) {
-  let difficultyColor = "bg-green-100 text-green-700";
-  if (difficulty === "Medium") {
-    difficultyColor = "bg-yellow-100 text-yellow-700";
-  } else if (difficulty === "Hard") {
-    difficultyColor = "bg-red-100 text-red-700";
-  }
-  
-  return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <CardContent className="p-0">
-        <div className="p-4 bg-slate-50">
-          <img 
-            src={imagePath} 
-            alt={`Sign for ${name}`} 
-            className="w-full h-32 object-contain"
-            style={{ filter: "hue-rotate(220deg)" }}
-          />
-        </div>
-        <div className="p-4">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-bold text-slate-dark">{name}</h3>
-            <span className={`text-xs px-2 py-1 rounded-full ${difficultyColor}`}>
-              {difficulty}
-            </span>
-          </div>
-          <p className="text-sm text-slate-400 mb-3">{category}</p>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-between text-purple hover:text-purple-dark hover:bg-purple-50"
-            onClick={onLearnClick}
-          >
-            Learn Sign
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-interface SignDetailProps {
-  sign: {
-    name: string;
-    category: string;
-    difficulty: string;
-    imagePath: string;
-    description?: string;
-    steps?: string[];
-    tips?: string;
-  } | null;
-}
-
-function SignDetail({ sign }: SignDetailProps) {
-  if (!sign) return null;
-  
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="bg-slate-50 p-6 rounded-lg flex items-center justify-center">
-        <img 
-          src={sign.imagePath} 
-          alt={`Sign for ${sign.name}`} 
-          className="w-full max-h-80 object-contain"
-          style={{ filter: "hue-rotate(220deg)" }}
-        />
-      </div>
-      
-      <div>
-        <div className="flex items-center gap-3 mb-4">
-          <h2 className="text-2xl font-bold">{sign.name}</h2>
-          <span className={`text-xs px-2 py-1 rounded-full ${
-            sign.difficulty === "Easy" ? "bg-green-100 text-green-700" : 
-            sign.difficulty === "Medium" ? "bg-yellow-100 text-yellow-700" : 
-            "bg-red-100 text-red-700"
-          }`}>
-            {sign.difficulty}
-          </span>
-          <span className="text-sm text-slate-400">{sign.category}</span>
-        </div>
-        
-        {sign.description && (
-          <div className="mb-4">
-            <p className="text-gray-700">{sign.description}</p>
-          </div>
-        )}
-        
-        {sign.steps && sign.steps.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2">Steps</h3>
-            <ol className="list-decimal pl-5 space-y-1">
-              {sign.steps.map((step, index) => (
-                <li key={index} className="text-gray-700">{step}</li>
-              ))}
-            </ol>
-          </div>
-        )}
-        
-        {sign.tips && (
-          <div className="mt-4 bg-purple-50 p-3 rounded-md">
-            <h3 className="text-sm font-semibold text-purple mb-1">Tip</h3>
-            <p className="text-sm text-gray-700">{sign.tips}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-interface SignDictionaryProps {
-  showAlphabet?: boolean;
-}
-
-export function SignDictionary({ showAlphabet = false }: SignDictionaryProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const signs = showAlphabet ? alphabetSigns : mockSigns;
-  
-  // Define categories based on which dictionary we're showing
-  const categories = showAlphabet 
-    ? ["All"] 
-    : ["All", "Greetings", "Courtesy", "Questions", "Relationships", "Emotions", "Common"];
-    
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [selectedSign, setSelectedSign] = useState<typeof signs[0] | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
-  // Filter signs based on search and category
-  const filteredSigns = signs.filter(sign => {
-    const matchesSearch = sign.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = activeCategory === "All" || sign.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const handleLearnClick = (sign: typeof signs[0]) => {
-    setSelectedSign(sign);
-    setIsDialogOpen(true);
-  };
-
-  return (
-    <div>
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-            <Input 
-              placeholder={showAlphabet ? "Search alphabet signs..." : "Search signs..."} 
-              className="pl-10" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          {!showAlphabet && (
-            <Button variant="outline" className="flex gap-2">
-              <Filter className="h-4 w-4" />
-              Filters
-            </Button>
-          )}
-        </div>
-        
-        {categories.length > 1 && (
-          <Tabs defaultValue="All" className="w-full">
-            <TabsList className="w-full overflow-x-auto flex flex-nowrap justify-start mb-2 bg-transparent">
-              {categories.map(category => (
-                <TabsTrigger 
-                  key={category} 
-                  value={category}
-                  onClick={() => setActiveCategory(category)}
-                  className="data-[state=active]:bg-purple data-[state=active]:text-white"
-                >
-                  {category}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        )}
-      </div>
-      
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredSigns.map(sign => (
-          <SignCard 
-            key={sign.id}
-            name={sign.name}
-            category={sign.category}
-            difficulty={sign.difficulty}
-            imagePath={sign.imagePath}
-            onLearnClick={() => handleLearnClick(sign)}
-          />
-        ))}
-        
-        {filteredSigns.length === 0 && (
-          <div className="col-span-full text-center py-8">
-            <p className="text-slate-400">No signs found matching your search.</p>
-          </div>
-        )}
-      </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Learn Sign</DialogTitle>
-            <DialogDescription>
-              Study the gesture and follow the instructions below.
-            </DialogDescription>
-          </DialogHeader>
-          <SignDetail sign={selectedSign} />
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+      "Extend your thumb and pinky

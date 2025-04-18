@@ -1,4 +1,3 @@
-
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,7 @@ const Community = () => {
               Connect and Learn Together
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="bg-purple/10 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
@@ -48,21 +47,6 @@ const Community = () => {
                   </p>
                   <Button variant="outline" className="w-full border-purple text-purple">
                     Find Partners
-                  </Button>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-6">
-                  <div className="bg-teal/10 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-                    <Video className="h-6 w-6 text-teal" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-dark mb-2">Live Sessions</h3>
-                  <p className="text-slate mb-4">
-                    Join live practice sessions led by experienced sign language users.
-                  </p>
-                  <Button variant="outline" className="w-full border-teal text-teal">
-                    Browse Sessions
                   </Button>
                 </CardContent>
               </Card>
