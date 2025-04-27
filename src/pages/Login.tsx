@@ -52,8 +52,8 @@ const Login = () => {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
       
-      <main className="flex-grow flex items-center justify-center p-14">
-        <form onSubmit={handleLogin}>
+      <main className="flex-grow flex items-center justify-center p-8">
+        <form onSubmit={handleLogin} className="w-full max-w-md space-y-6">
           <Card className="w-full max-w-md shadow-lg">
             <CardHeader className="text-center space-y-3 pb-8">
               <CardTitle className="text-3xl font-bold text-purple">

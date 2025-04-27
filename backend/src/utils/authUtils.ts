@@ -1,61 +1,68 @@
+import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import config from '../config';
+import { User } from '../models/User';
 
-// Hash password before storing in database
 export const hashPassword = async (password: string): Promise<string> => {
-  const saltRounds = 10;
-  return bcrypt.hash(password, saltRounds);
+  return bcrypt.hash(password, 10);
 };
 
-// Compare password with hashed password from database
 export const comparePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
   return bcrypt.compare(password, hashedPassword);
 };
 
-// Add strong password validation
-export const isStrongPassword = (password: string): boolean => {
-  // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special character
-  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  return strongPasswordRegex.test(password);
-};
-
-// Generate JWT token for authenticated user
-export const generateToken = (user: { id: number; email: string; role: string }): string => {
-  return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    config.jwt.secret as string,
-    { expiresIn: config.jwt.expiresIn as string | number }
-  );
-};
-
-// Generate refresh token
-export const generateRefreshToken = (user: { id: number }): string => {
-  return jwt.sign(
-    { id: user.id },
-    config.jwt.refreshSecret,
-    { expiresIn: config.jwt.refreshExpiresIn }
-  );
-};
-
-// Verify refresh token
-export const verifyRefreshToken = (token: string): any => {
-  try {
-    return jwt.verify(token, config.jwt.refreshSecret);
-  } catch (error) {
-    return null;
+export const generateAccessToken = async (user: User): Promise<string> => {
+  if (!config.jwt.secret) {
+    throw new Error('JWT_SECRET is not defined');
   }
+  const secret = new TextEncoder().encode(config.jwt.secret);
+  return new SignJWT({ id: user.id, email: user.email, role: user.role })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(config.jwt.expiresIn || '15m')
+    .sign(secret);
 };
 
-// Generate password reset token
+export const generateRefreshToken = async (user: User): Promise<string> => {
+  if (!config.jwt.refreshSecret) {
+    throw new Error('JWT_REFRESH_SECRET is not defined');
+  }
+  const secret = new TextEncoder().encode(config.jwt.refreshSecret);
+  return new SignJWT({ id: user.id })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(config.jwt.refreshExpiresIn || '7d')
+    .sign(secret);
+};
+
+export const verifyRefreshToken = async (token: string): Promise<{ id: number }> => {
+  if (!config.jwt.refreshSecret) {
+    throw new Error('JWT_REFRESH_SECRET is not defined');
+  }
+  const secret = new TextEncoder().encode(config.jwt.refreshSecret);
+  const { payload } = await jwtVerify(token, secret);
+  return { id: payload.id as number };
+};
+
 export const generatePasswordResetToken = (): string => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-// Remove sensitive data before sending user object to client
-export const sanitizeUser = (user: any) => {
-  const { password, refreshToken, passwordResetToken, passwordResetExpires, ...sanitizedUser } = user;
-  return sanitizedUser;
+export const isStrongPassword = (password: string): boolean => {
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  return strongPasswordRegex.test(password);
 };
 
+export const sanitizeUser = (user: User): Partial<User> => {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    bio: user.bio,
+    profile_picture: user.profile_picture,
+    is_email_verified: user.is_email_verified,
+    last_login: user.last_login,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+  };
+};

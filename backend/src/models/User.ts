@@ -1,61 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
-
-@Entity()
-export class User {
-  @PrimaryGeneratedColumn()
-  id!: number;
-
-  @Column()
-  name!: string;
-
-  @Column({ unique: true })
-  email!: string;
-
-  @Column()
-  password!: string;
-
-  @Column({ nullable: true })
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  password: string;
   bio?: string;
-
-  @Column({ nullable: true })
-  profilePicture?: string;
-
-  @Column({ nullable: true })
-  googleId?: string;
-
-  @Column({ nullable: true })
-  facebookId?: string;
-
-  @Column({ default: 'user' })
-  role!: string;
-
-  @Column({ nullable: true })
-  refreshToken?: string;
-
-  @Column({ nullable: true })
-  passwordResetToken?: string;
-
-  @Column({ nullable: true })
-  passwordResetExpires?: Date;
-
-  @Column({ default: false })
-  isEmailVerified!: boolean;
-
-  @Column({ default: 0 })
-  failedLoginAttempts!: number;
-
-  @Column({ nullable: true })
-  lockUntil?: Date;
-
-  @Column({ nullable: true })
-  lastLogin?: Date;
-
-  @Column({ nullable: true })
-  lastPasswordChange?: Date;
-
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
+  profile_picture?: string;
+  google_id?: string;
+  facebook_id?: string;
+  role: string;
+  refresh_token?: string;
+  password_reset_token?: string;
+  password_reset_expires?: Date;
+  is_email_verified: boolean;
+  failed_login_attempts: number;
+  lock_until?: Date;
+  last_login?: Date;
+  last_password_change?: Date;
+  created_at: Date;
+  updated_at: Date;
 }

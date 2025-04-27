@@ -19,7 +19,7 @@ export default {
     callbackURL: process.env.FACEBOOK_CALLBACK_URL || 'http://localhost:3000/auth/facebook/callback',
   },
   frontend: {
-    url: process.env.FRONTEND_URL || 'http://localhost:8080',
+    url: process.env.FRONTEND_URL || 'http://localhost:5173',
   },
   email: {
     from: process.env.EMAIL_FROM || 'noreply@signscribe.com',

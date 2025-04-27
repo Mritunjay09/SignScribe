@@ -1,39 +1,40 @@
 import express from 'express';
 import cors from 'cors';
-import passport from 'passport';
 import path from 'path';
 import pool from './db';
 import config from './config';
-import { authenticateJWT, authenticateGoogle, authenticateFacebook, authorizeRoles } from './middleware/auth';
-import { 
-  hashPassword, 
-  comparePassword, 
-  generateToken, 
+import { authenticateJWT, authorizeRoles } from './middleware/auth';
+import { User } from './models/User';
+import {
+  hashPassword,
+  comparePassword,
+  generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
   generatePasswordResetToken,
   sanitizeUser,
-  isStrongPassword
+  isStrongPassword,
 } from './utils/authUtils';
 import { sendPasswordResetEmail, sendVerificationEmail } from './utils/emailUtils';
 import { upload } from './utils/uploadUtils';
-import './middleware/auth'; // Import to initialize passport strategies
+import { Request, Response, NextFunction } from 'express';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors({
-  origin: config.frontend.url,
-  credentials: true,
-}));
+// Middleware setup
+app.use(
+  cors({
+    origin: config.frontend.url,
+    credentials: true,
+  })
+);
 app.use(express.json());
-app.use(passport.initialize());
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Create tables if they don't exist
+// Initialize database
 const initializeDatabase = async () => {
   try {
     await pool.query(`
@@ -62,417 +63,372 @@ const initializeDatabase = async () => {
     console.log('Database initialized');
   } catch (error) {
     console.error('Error initializing database:', error);
+    process.exit(1); // Exit on DB failure
   }
 };
+initializeDatabase();
 
-// Rate limiting middleware
-const requestCounts = new Map();
-const rateLimiter = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const ip = req.ip;
+// Rate-limiting middleware
+const requestCounts = new Map<string, number[]>();
+const RATE_LIMIT = config.security.maxRequestsPerMinute || 100;
+const WINDOW_MS = 60 * 1000; // 1 minute
+
+const rateLimiter = (req: Request, res: Response, next: NextFunction): void => {
+  const ip = req.ip as string;
   const now = Date.now();
-  const windowStart = now - 60000; // 1 minute window
-  
+  const windowStart = now - WINDOW_MS;
+
   const requestTimes = requestCounts.get(ip) || [];
-  const recentRequests: number[] = requestTimes.filter((time: number) => time > windowStart);
-  
-  if (recentRequests.length >= config.security.maxRequestsPerMinute) {
-    return res.status(429).json({ message: 'Too many requests. Please try again later.' });
+  const recentRequests = requestTimes.filter((time) => time > windowStart);
+
+  if (recentRequests.length >= RATE_LIMIT) {
+    res.status(429).json({ message: 'Too many requests. Please try again later.' });
+    return;
   }
-  
+
   recentRequests.push(now);
   requestCounts.set(ip, recentRequests);
-  
+
+  // Cleanup old IPs (run periodically)
+  if (requestCounts.size > 1000) {
+    for (const [key, times] of requestCounts) {
+      if (times.every((time) => now - time > WINDOW_MS)) {
+        requestCounts.delete(key);
+      }
+    }
+  }
+
   next();
 };
 
-// Initialize database on startup
-initializeDatabase();
+// Apply rate-limiter to specific routes
+const authRateLimiter = rateLimiter; // Can customize for auth routes
 
-// Helper function to update timestamp
-app.use(async (req, res, next) => {
+// Interface for request with user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;  // This augments the existing Request type
+    }
+  }
+}
+
+// Update timestamp middleware
+app.use(async (req: Request, res: Response, next: NextFunction) => {
   if (req.method === 'PUT' || req.method === 'POST') {
-    const routeEndsWithId = req.path.match(/\/[0-9]+$/);
-    if (routeEndsWithId) {
-      await pool.query('UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', 
-        [parseInt(routeEndsWithId[0].substring(1))]);
+    const match = req.path.match(/\/[0-9]+$/);
+    if (match) {
+      const id = parseInt(match[0].substring(1));
+      try {
+        await pool.query('UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
+      } catch (error) {
+        console.error('Error updating timestamp:', error);
+        return next(error);
+      }
     }
   }
   next();
 });
 
 // Auth Routes
-// Register new user
-app.post('/signup', async (req, res) => {
+app.post('/signup', authRateLimiter, async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
-  
+
   try {
-    // Check if user already exists
     const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
        res.status(400).json({ message: 'User with this email already exists' });
        return;
     }
-    
-    // Validate password strength
+
     if (!isStrongPassword(password)) {
-      res.status(400).json({ 
-        message: 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character' 
+      res.status(400).json({
+        message:
+          'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character',
       });
       return;
     }
-    
-    // Hash password
+
     const hashedPassword = await hashPassword(password);
-    
-    // Generate verification token
     const verificationToken = generatePasswordResetToken();
-    
-    // Create new user
+
     const result = await pool.query(
-      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *', 
+      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *',
       [name, email, hashedPassword, 'user']
     );
-    
     const user = result.rows[0];
-    
-    // Generate tokens
-    const token = generateToken(user);
-    const refreshToken = generateRefreshToken(user);
-    
-    // Store refresh token in database
+
+    const token = await generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user);
+
     await pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id]);
-    
-    // Send verification email
+
     await sendVerificationEmail(email, verificationToken, name);
-    
-    // Return user data and tokens
+
     res.status(201).json({
       user: sanitizeUser(user),
       token,
-      refreshToken
+      refreshToken,
     });
   } catch (error) {
-    console.error('Error during registration:', error);
-    res.status(500).json({ message: 'Error creating user' });
+    console.error('Signup error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Login route with account locking
-app.post('/login', async (req, res) => {
+app.post('/login', authRateLimiter, async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  
+
   try {
-    // Find user by email
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (result.rows.length === 0) {
-      res.status(401).json({ message: 'Invalid credentials' });
-      return;
+       res.status(401).json({ message: 'Invalid credentials' });
+       return;
     }
-    
+
     const user = result.rows[0];
-    
-    // Check if account is locked
+
     if (user.lock_until && new Date(user.lock_until) > new Date()) {
-      const lockTimeRemaining = Math.ceil((new Date(user.lock_until).getTime() - new Date().getTime()) / 60000);
-      res.status(403).json({ 
-        message: `Account is locked. Try again in ${lockTimeRemaining} minutes.` 
+      const lockTimeRemaining = Math.ceil(
+        (new Date(user.lock_until).getTime() - new Date().getTime()) / 60000
+      );
+      res.status(403).json({
+        message: `Account is locked. Try again in ${lockTimeRemaining} minutes.`,
       });
       return;
     }
-    
-    // Check if password is correct
+
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
-      // Increment failed login attempts
       const failedAttempts = user.failed_login_attempts + 1;
       let lockUntil = null;
-      
-      // Lock account after certain number of failed attempts
+
       if (failedAttempts >= config.security.maxLoginAttempts) {
         lockUntil = new Date(Date.now() + config.security.lockTime);
       }
-      
+
       await pool.query(
         'UPDATE users SET failed_login_attempts = $1, lock_until = $2 WHERE id = $3',
         [failedAttempts, lockUntil, user.id]
       );
-      
-      res.status(401).json({ 
+
+      res.status(401).json({
         message: 'Invalid credentials',
-        attemptsLeft: config.security.maxLoginAttempts - failedAttempts
+        attemptsLeft: config.security.maxLoginAttempts - failedAttempts,
       });
       return;
     }
-    
-    // Reset failed login attempts on successful login
+
     await pool.query(
       'UPDATE users SET failed_login_attempts = 0, lock_until = NULL, last_login = CURRENT_TIMESTAMP WHERE id = $1',
       [user.id]
     );
-    
-    // Generate tokens
-    const token = generateToken(user);
-    const refreshToken = generateRefreshToken(user);
-    
-    // Store refresh token in database
+
+    const token = await generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user);
+
     await pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id]);
-    
-    // Return user data and tokens
+
     res.status(200).json({
       user: sanitizeUser(user),
       token,
-      refreshToken
+      refreshToken,
     });
   } catch (error) {
-    console.error('Error during login:', error);
-    res.status(500).json({ message: 'Error during login' });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Refresh token
-app.post('/refresh-token', async (req, res) => {
+app.post('/refresh-token', async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
-  
+
   if (!refreshToken) {
-    res.status(401).json({ message: 'Refresh token is required' });
-    return;
+     res.status(401).json({ message: 'Refresh token is required' });
+     return;
   }
-  
+
   try {
-    // Verify refresh token
-    const decoded = verifyRefreshToken(refreshToken);
-    if (!decoded) {
-      res.status(401).json({ message: 'Invalid refresh token' });
-      return;
-    }
-    
-    // Find user by ID and check if refresh token matches
+    const decoded = await verifyRefreshToken(refreshToken);
     const result = await pool.query(
       'SELECT * FROM users WHERE id = $1 AND refresh_token = $2',
       [decoded.id, refreshToken]
     );
-    
+
     if (result.rows.length === 0) {
-      res.status(401).json({ message: 'Invalid refresh token' });
-      return;
+       res.status(401).json({ message: 'Invalid refresh token' });
+       return;
     }
-    
+
     const user = result.rows[0];
-    
-    // Generate new access token
-    const newAccessToken = generateToken(user);
-    
-    res.status(200).json({
-      token: newAccessToken
-    });
+    const newAccessToken = await generateAccessToken(user);
+
+    res.status(200).json({ token: newAccessToken });
   } catch (error) {
-    console.error('Error refreshing token:', error);
-    res.status(500).json({ message: 'Error refreshing token' });
+    console.error('Refresh token error:', error);
+    res.status(401).json({ message: 'Invalid refresh token' });
   }
 });
 
-// Logout
-app.post('/logout', authenticateJWT, async (req, res) => {
-  const user = req.user as any;
-  
+app.post('/logout', authenticateJWT, async (req: Request, res: Response) => {
+  const user = req.user as User;
+
   try {
-    // Clear refresh token in database
     await pool.query('UPDATE users SET refresh_token = NULL WHERE id = $1', [user.id]);
     res.status(200).json({ message: 'Logout successful' });
   } catch (error) {
-    console.error('Error during logout:', error);
-    res.status(500).json({ message: 'Error during logout' });
+    console.error('Logout error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Forgot password - send reset email
-app.post('/forgot-password', async (req, res) => {
+app.post('/forgot-password', authRateLimiter, async (req: Request, res: Response) => {
   const { email } = req.body;
-  
+
   try {
-    // Find user by email
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (result.rows.length === 0) {
-      // For security reasons, don't reveal that the email doesn't exist
-      res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
-      return;
+       res.status(200).json({ message: 'Password reset link sent if email exists.' });
+       return;
     }
-    
+
     const user = result.rows[0];
-    
-    // Generate password reset token
     const resetToken = generatePasswordResetToken();
-    const resetExpires = new Date(Date.now() + 3600000); // 1 hour
-    
-    // Store token and expiry in database
+    const resetExpires = new Date(Date.now() + 3600000);
+
     await pool.query(
       'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
       [resetToken, resetExpires, user.id]
     );
-    
-    // Send password reset email
+
     await sendPasswordResetEmail(user.email, resetToken, user.name);
-    
-    res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+
+    res.status(200).json({ message: 'Password reset link sent if email exists.' });
   } catch (error) {
-    console.error('Error requesting password reset:', error);
-    res.status(500).json({ message: 'Error requesting password reset' });
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Reset password with token
-app.post('/reset-password/:token', async (req, res) => {
-  const { token } = req.params;
+app.post('/reset-password/:token', authRateLimiter, async (req: Request, res: Response) => {
   const { password } = req.body;
-  
+
   try {
-    // Find user with the reset token that hasn't expired
+    const { token } = req.params; // Extract token from route parameters
     const result = await pool.query(
       'SELECT * FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()',
       [token]
     );
-    
+
     if (result.rows.length === 0) {
-      res.status(400).json({ message: 'Password reset token is invalid or has expired' });
+      res.status(400).json({ message: 'Invalid or expired reset token' });
       return;
     }
-    
+
     const user = result.rows[0];
-    
-    // Validate password strength
+
     if (!isStrongPassword(password)) {
-      res.status(400).json({ 
-        message: 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character' 
+       res.status(400).json({
+        message:
+          'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character',
       });
       return;
     }
-    
-    // Hash new password
+
     const hashedPassword = await hashPassword(password);
-    
-    // Update user password and clear reset token
+
     await pool.query(
-      'UPDATE users SET password = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2',
+      'UPDATE users SET password = $1, password_reset_token = NULL, password_reset_expires = NULL, last_password_change = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedPassword, user.id]
     );
-    
-    res.status(200).json({ message: 'Password has been reset successfully' });
+
+    res.status(200).json({ message: 'Password reset successfully' });
   } catch (error) {
-    console.error('Error resetting password:', error);
-    res.status(500).json({ message: 'Error resetting password' });
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Google OAuth login route
-app.get('/auth/google', authenticateGoogle);
-
-// Google OAuth callback
-app.get('/auth/google/callback', passport.authenticate('google', { session: false }), (req, res) => {
-  const user = req.user as any;
-  const token = generateToken(user);
-  const refreshToken = generateRefreshToken(user);
-  
-  // Store refresh token in database
-  pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id])
-    .catch(err => console.error('Error storing refresh token:', err));
-  
-  res.redirect(`${config.frontend.url}/auth/success?token=${token}&refreshToken=${refreshToken}`);
-});
-
-// Facebook OAuth login route
-app.get('/auth/facebook', authenticateFacebook);
-
-// Facebook OAuth callback
-app.get('/auth/facebook/callback', passport.authenticate('facebook', { session: false }), (req, res) => {
-  const user = req.user as any;
-  const token = generateToken(user);
-  const refreshToken = generateRefreshToken(user);
-  
-  // Store refresh token in database
-  pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id])
-    .catch(err => console.error('Error storing refresh token:', err));
-  
-  res.redirect(`${config.frontend.url}/auth/success?token=${token}&refreshToken=${refreshToken}`);
-});
-
-// Protected route to get user profile
-app.get('/profile', authenticateJWT, async (req, res) => {
+// Protected Routes
+app.get('/profile', authenticateJWT, async (req: Request, res: Response) => {
+  const user = req.user as User;
   try {
-    res.status(200).json({ user: sanitizeUser(req.user) });
+    res.status(200).json({ user: sanitizeUser(user) });
   } catch (error) {
-    console.error('Error fetching profile:', error);
-    res.status(500).json({ message: 'Error fetching profile' });
+    console.error('Profile fetch error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Protected route to update user profile
-app.put('/profile', authenticateJWT, upload.single('profilePicture'), async (req, res) => {
-  const { name, bio } = req.body;
-  const user = req.user as any;
-  
-  try {
-    let profilePicture = user.profile_picture;
-    
-    // If there's a new profile picture
-    if (req.file) {
-      profilePicture = `/uploads/${req.file.filename}`;
+app.put(
+  '/profile',
+  authenticateJWT,
+  upload.single('profilePicture'),
+  async (req: Request, res: Response) => {
+    const user = req.user as User;
+    const { name, bio } = req.body;
+
+    try {
+      let profilePicture = user.profile_picture || '';
+      if (req.file) {
+        profilePicture = `/uploads/${req.file.filename}`;
+      }
+
+      const result = await pool.query(
+        'UPDATE users SET name = $1, bio = $2, profile_picture = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
+        [name || user.name, bio || user.bio, profilePicture, user.id]
+      );
+
+      res.status(200).json({ user: sanitizeUser(result.rows[0]) });
+    } catch (error) {
+      console.error('Profile update error:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
-    
-    // Update user profile
-    const result = await pool.query(
-      'UPDATE users SET name = $1, bio = $2, profile_picture = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
-      [name || user.name, bio || user.bio, profilePicture, user.id]
-    );
-    
-    res.status(200).json({ user: sanitizeUser(result.rows[0]) });
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).json({ message: 'Error updating profile' });
-  }
 });
 
-// Admin-only route example
-app.get('/admin/users', authenticateJWT, authorizeRoles(['admin']), async (req, res) => {
+app.get('/admin/users', authenticateJWT, authorizeRoles(['admin']), async (req: Request, res: Response) => {
   try {
     const result = await pool.query('SELECT * FROM users');
-    const sanitizedUsers = result.rows.map(user => sanitizeUser(user));
-    
+    const sanitizedUsers = result.rows.map((user) => sanitizeUser(user));
     res.status(200).json({ users: sanitizedUsers });
   } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ message: 'Error fetching users' });
+    console.error('Fetch users error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Change user role (admin only)
-app.put('/admin/users/:id/role', authenticateJWT, authorizeRoles(['admin']), async (req, res) => {
-  const { id } = req.params;
-  const { role } = req.body;
-  
-  // Validate role
-  const validRoles = ['user', 'admin', 'moderator'];
-  if (!validRoles.includes(role)) {
-    res.status(400).json({ message: 'Invalid role specified' });
-    return;
-  }
-  
-  try {
-    const result = await pool.query(
-      'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
-      [role, id]
-    );
-    
-    if (result.rows.length === 0) {
-      res.status(404).json({ message: 'User not found' });
+app.put(
+  '/admin/users/:id/role',
+  authenticateJWT,
+  authorizeRoles(['admin']),
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    const validRoles = ['user', 'admin', 'moderator'];
+    if (!validRoles.includes(role)) {
+      res.status(400).json({ message: 'Invalid role specified' });
       return;
     }
-    
-    res.status(200).json({ user: sanitizeUser(result.rows[0]) });
-  } catch (error) {
-    console.error('Error updating user role:', error);
-    res.status(500).json({ message: 'Error updating user role' });
+
+    try {
+      const result = await pool.query(
+        'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+        [role, id]
+      );
+
+      if (result.rows.length === 0) {
+        res.status(404).json({ message: 'User not found' });
+        return;
+      }
+
+      res.status(200).json({ user: sanitizeUser(result.rows[0]) });
+    } catch (error) {
+      console.error('Update user role error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
   }
-});
+);
 
 // Start server
 app.listen(port, () => {
