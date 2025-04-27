@@ -27,6 +27,27 @@ export class User {
   @Column({ nullable: true })
   facebookId?: string;
 
+  @Column({ default: 'user' })
+  role!: string;
+
+  @Column({ nullable: true })
+  refreshToken?: string;
+
+  @Column({ nullable: true })
+  passwordResetToken?: string;
+
+  @Column({ nullable: true })
+  passwordResetExpires?: Date;
+
+  @Column({ default: false })
+  isEmailVerified!: boolean;
+
+  @Column({ default: 0 })
+  failedLoginAttempts!: number;
+
+  @Column({ nullable: true })
+  lockUntil?: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 

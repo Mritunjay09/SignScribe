@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { setToken, fetchUserProfile } from "@/utils/authUtils";
+import { setToken, setRefreshToken, fetchUserProfile } from "@/utils/authUtils";
 import { toast } from "sonner";
 
 const AuthSuccess = () => {
@@ -13,6 +13,7 @@ const AuthSuccess = () => {
       // Get token from URL query parameters
       const params = new URLSearchParams(location.search);
       const token = params.get('token');
+      const refreshToken = params.get('refreshToken');
       
       if (!token) {
         toast.error("Authentication failed. No token received.");
@@ -20,8 +21,11 @@ const AuthSuccess = () => {
         return;
       }
       
-      // Store the token
+      // Store the tokens
       setToken(token);
+      if (refreshToken) {
+        setRefreshToken(refreshToken);
+      }
       
       // Fetch user profile
       try {

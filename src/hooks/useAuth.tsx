@@ -1,22 +1,31 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { User, fetchUserProfile, isAuthenticated as checkAuth, logout as signOut } from '@/utils/authUtils';
+import { 
+  User, 
+  fetchUserProfile, 
+  isAuthenticated as checkAuth, 
+  logout as signOut,
+  refreshAuthToken,
+  hasRole as checkRole
+} from '@/utils/authUtils';
 
 // Create a context for auth state
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  hasRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  logout: () => {},
+  logout: async () => {},
   refreshUser: async () => {},
+  hasRole: () => false,
 });
 
 // Provider component
@@ -31,16 +40,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(userData);
       } catch (error) {
         console.error('Failed to fetch user data:', error);
-        setUser(null);
+        // Try to refresh the token
+        const refreshed = await refreshAuthToken();
+        if (refreshed) {
+          // Try fetching user data again with the new token
+          try {
+            const userData = await fetchUserProfile();
+            setUser(userData);
+          } catch (secondError) {
+            console.error('Failed to fetch user data after token refresh:', secondError);
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
       }
     } else {
       setUser(null);
     }
   };
   
-  const logout = () => {
-    signOut();
+  const logout = async () => {
+    await signOut();
     setUser(null);
+  };
+  
+  const hasRole = (role: string) => {
+    return checkRole(role);
   };
   
   useEffect(() => {
@@ -51,6 +77,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     
     initialize();
+    
+    // Set up token refresh interval
+    const refreshInterval = setInterval(async () => {
+      if (checkAuth()) {
+        await refreshAuthToken();
+      }
+    }, 10 * 60 * 1000); // Refresh token every 10 minutes
+    
+    return () => clearInterval(refreshInterval);
   }, []);
   
   return (
@@ -60,7 +95,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated: !!user,
         isLoading,
         logout,
-        refreshUser
+        refreshUser,
+        hasRole
       }}
     >
       {children}

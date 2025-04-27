@@ -5,8 +5,18 @@ import passport from 'passport';
 import path from 'path';
 import pool from './db';
 import config from './config';
-import { authenticateJWT, authenticateGoogle, authenticateFacebook } from './middleware/auth';
-import { hashPassword, comparePassword, generateToken, sanitizeUser } from './utils/authUtils';
+import { authenticateJWT, authenticateGoogle, authenticateFacebook, authorizeRoles } from './middleware/auth';
+import { 
+  hashPassword, 
+  comparePassword, 
+  generateToken, 
+  generateRefreshToken,
+  verifyRefreshToken,
+  generatePasswordResetToken,
+  sanitizeUser,
+  isStrongPassword
+} from './utils/authUtils';
+import { sendPasswordResetEmail } from './utils/emailUtils';
 import { upload } from './utils/uploadUtils';
 import './middleware/auth'; // Import to initialize passport strategies
 
@@ -37,6 +47,13 @@ const initializeDatabase = async () => {
         profile_picture VARCHAR(255),
         google_id VARCHAR(255),
         facebook_id VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'user',
+        refresh_token TEXT,
+        password_reset_token VARCHAR(255),
+        password_reset_expires TIMESTAMP,
+        is_email_verified BOOLEAN DEFAULT false,
+        failed_login_attempts INTEGER DEFAULT 0,
+        lock_until TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -74,22 +91,36 @@ app.post('/signup', async (req, res) => {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
     
+    // Validate password strength
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ 
+        message: 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character' 
+      });
+    }
+    
     // Hash password
     const hashedPassword = await hashPassword(password);
     
     // Create new user
     const result = await pool.query(
-      'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *', 
-      [name, email, hashedPassword]
+      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *', 
+      [name, email, hashedPassword, 'user']
     );
     
-    // Generate token
-    const token = generateToken(result.rows[0]);
+    const user = result.rows[0];
     
-    // Return user data and token
+    // Generate tokens
+    const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
+    
+    // Store refresh token in database
+    await pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id]);
+    
+    // Return user data and tokens
     res.status(201).json({
-      user: sanitizeUser(result.rows[0]),
-      token
+      user: sanitizeUser(user),
+      token,
+      refreshToken
     });
   } catch (error) {
     console.error('Error during registration:', error);
@@ -110,23 +141,187 @@ app.post('/login', async (req, res) => {
     
     const user = result.rows[0];
     
+    // Check if account is locked
+    if (user.lock_until && new Date(user.lock_until) > new Date()) {
+      const lockTimeRemaining = Math.ceil((new Date(user.lock_until).getTime() - new Date().getTime()) / 60000);
+      return res.status(403).json({ 
+        message: `Account is locked. Try again in ${lockTimeRemaining} minutes.` 
+      });
+    }
+    
     // Check if password is correct
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      // Increment failed login attempts
+      const failedAttempts = user.failed_login_attempts + 1;
+      let lockUntil = null;
+      
+      // Lock account after certain number of failed attempts
+      if (failedAttempts >= config.security.maxLoginAttempts) {
+        lockUntil = new Date(Date.now() + config.security.lockTime);
+      }
+      
+      await pool.query(
+        'UPDATE users SET failed_login_attempts = $1, lock_until = $2 WHERE id = $3',
+        [failedAttempts, lockUntil, user.id]
+      );
+      
+      return res.status(401).json({ 
+        message: 'Invalid credentials',
+        attemptsLeft: config.security.maxLoginAttempts - failedAttempts
+      });
     }
     
-    // Generate token
-    const token = generateToken(user);
+    // Reset failed login attempts on successful login
+    await pool.query(
+      'UPDATE users SET failed_login_attempts = 0, lock_until = NULL WHERE id = $1',
+      [user.id]
+    );
     
-    // Return user data and token
+    // Generate tokens
+    const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
+    
+    // Store refresh token in database
+    await pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id]);
+    
+    // Return user data and tokens
     res.status(200).json({
       user: sanitizeUser(user),
-      token
+      token,
+      refreshToken
     });
   } catch (error) {
     console.error('Error during login:', error);
     res.status(500).json({ message: 'Error during login' });
+  }
+});
+
+// Refresh token
+app.post('/refresh-token', async (req, res) => {
+  const { refreshToken } = req.body;
+  
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Refresh token is required' });
+  }
+  
+  try {
+    // Verify refresh token
+    const decoded = verifyRefreshToken(refreshToken);
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+    
+    // Find user by ID and check if refresh token matches
+    const result = await pool.query(
+      'SELECT * FROM users WHERE id = $1 AND refresh_token = $2',
+      [decoded.id, refreshToken]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+    
+    const user = result.rows[0];
+    
+    // Generate new access token
+    const newAccessToken = generateToken(user);
+    
+    res.status(200).json({
+      token: newAccessToken
+    });
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    res.status(500).json({ message: 'Error refreshing token' });
+  }
+});
+
+// Logout
+app.post('/logout', authenticateJWT, async (req, res) => {
+  const user = req.user as any;
+  
+  try {
+    // Clear refresh token in database
+    await pool.query('UPDATE users SET refresh_token = NULL WHERE id = $1', [user.id]);
+    res.status(200).json({ message: 'Logout successful' });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    res.status(500).json({ message: 'Error during logout' });
+  }
+});
+
+// Forgot password - send reset email
+app.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  
+  try {
+    // Find user by email
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      // For security reasons, don't reveal that the email doesn't exist
+      return res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+    }
+    
+    const user = result.rows[0];
+    
+    // Generate password reset token
+    const resetToken = generatePasswordResetToken();
+    const resetExpires = new Date(Date.now() + 3600000); // 1 hour
+    
+    // Store token and expiry in database
+    await pool.query(
+      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
+      [resetToken, resetExpires, user.id]
+    );
+    
+    // Send password reset email
+    await sendPasswordResetEmail(user.email, resetToken, user.name);
+    
+    res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    res.status(500).json({ message: 'Error requesting password reset' });
+  }
+});
+
+// Reset password with token
+app.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+  
+  try {
+    // Find user with the reset token that hasn't expired
+    const result = await pool.query(
+      'SELECT * FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()',
+      [token]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: 'Password reset token is invalid or has expired' });
+    }
+    
+    const user = result.rows[0];
+    
+    // Validate password strength
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ 
+        message: 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character' 
+      });
+    }
+    
+    // Hash new password
+    const hashedPassword = await hashPassword(password);
+    
+    // Update user password and clear reset token
+    await pool.query(
+      'UPDATE users SET password = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2',
+      [hashedPassword, user.id]
+    );
+    
+    res.status(200).json({ message: 'Password has been reset successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Error resetting password' });
   }
 });
 
@@ -135,8 +330,15 @@ app.get('/auth/google', authenticateGoogle);
 
 // Google OAuth callback
 app.get('/auth/google/callback', passport.authenticate('google', { session: false }), (req, res) => {
-  const token = generateToken(req.user as any);
-  res.redirect(`${config.frontend.url}/auth/success?token=${token}`);
+  const user = req.user as any;
+  const token = generateToken(user);
+  const refreshToken = generateRefreshToken(user);
+  
+  // Store refresh token in database
+  pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id])
+    .catch(err => console.error('Error storing refresh token:', err));
+  
+  res.redirect(`${config.frontend.url}/auth/success?token=${token}&refreshToken=${refreshToken}`);
 });
 
 // Facebook OAuth login route
@@ -144,8 +346,15 @@ app.get('/auth/facebook', authenticateFacebook);
 
 // Facebook OAuth callback
 app.get('/auth/facebook/callback', passport.authenticate('facebook', { session: false }), (req, res) => {
-  const token = generateToken(req.user as any);
-  res.redirect(`${config.frontend.url}/auth/success?token=${token}`);
+  const user = req.user as any;
+  const token = generateToken(user);
+  const refreshToken = generateRefreshToken(user);
+  
+  // Store refresh token in database
+  pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id])
+    .catch(err => console.error('Error storing refresh token:', err));
+  
+  res.redirect(`${config.frontend.url}/auth/success?token=${token}&refreshToken=${refreshToken}`);
 });
 
 // Protected route to get user profile
@@ -181,6 +390,47 @@ app.put('/profile', authenticateJWT, upload.single('profilePicture'), async (req
   } catch (error) {
     console.error('Error updating profile:', error);
     res.status(500).json({ message: 'Error updating profile' });
+  }
+});
+
+// Admin-only route example
+app.get('/admin/users', authenticateJWT, authorizeRoles(['admin']), async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM users');
+    const sanitizedUsers = result.rows.map(user => sanitizeUser(user));
+    
+    res.status(200).json({ users: sanitizedUsers });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Error fetching users' });
+  }
+});
+
+// Change user role (admin only)
+app.put('/admin/users/:id/role', authenticateJWT, authorizeRoles(['admin']), async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+  
+  // Validate role
+  const validRoles = ['user', 'admin', 'moderator'];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({ message: 'Invalid role specified' });
+  }
+  
+  try {
+    const result = await pool.query(
+      'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [role, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.status(200).json({ user: sanitizeUser(result.rows[0]) });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ message: 'Error updating user role' });
   }
 });
 
