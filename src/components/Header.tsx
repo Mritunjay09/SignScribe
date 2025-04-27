@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { set } from "date-fns";
+
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   return (
     <header className="bg-white border-b border-slate-100 sticky top-0 z-30">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -55,7 +56,9 @@ export function Header() {
         </nav>
 
         <div className="hidden md:block">
-          <Button className="bg-purple hover:bg-purple-dark">Get Started</Button>
+          <Button className="bg-purple hover:bg-purple-dark" onClick={() => window.location.href = '/login'}>
+            Login
+          </Button>
         </div>
 
         {/* Mobile Menu Button */}
@@ -107,10 +110,13 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Community
-            </NavLink>
-            <Button className="bg-purple hover:bg-purple-dark w-full">
-              Get Started
-            </Button>
+            </NavLink> 
+            <Button 
+            className="bg-purple hover:bg-purple-dark w-full"
+            onClick={() => window.location.href = '/login'}
+          >
+            Login
+          </Button>
           </div>
         </div>
       )}

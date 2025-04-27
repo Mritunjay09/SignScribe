@@ -1,5 +1,6 @@
 import { Facebook, Instagram, Twitter, Youtube, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export function Footer() {
   return (
@@ -33,10 +34,10 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Features</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Gesture Recognition</a></li>
-              <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Translation</a></li>
-              <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Dictionary</a></li>
-              <li><a href="#" className="text-slate-300 hover:text-white transition-colors">Games & Quizzes</a></li>
+              <li><Link to="/practice" className="text-slate-300 hover:text-white transition-colors">Gesture Recognition</Link></li>
+              <li><Link to="/chat" className="text-slate-300 hover:text-white transition-colors">Translation</Link></li>
+              <li><Link to="/dictionary" className="text-slate-300 hover:text-white transition-colors">Dictionary</Link></li>
+              <li><Link to="/practice" className="text-slate-300 hover:text-white transition-colors">Games & Quizzes</Link></li>
             </ul>
           </div>
           
