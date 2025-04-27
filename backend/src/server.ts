@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import passport from 'passport';
@@ -16,7 +15,7 @@ import {
   sanitizeUser,
   isStrongPassword
 } from './utils/authUtils';
-import { sendPasswordResetEmail } from './utils/emailUtils';
+import { sendPasswordResetEmail, sendVerificationEmail } from './utils/emailUtils';
 import { upload } from './utils/uploadUtils';
 import './middleware/auth'; // Import to initialize passport strategies
 
@@ -54,6 +53,8 @@ const initializeDatabase = async () => {
         is_email_verified BOOLEAN DEFAULT false,
         failed_login_attempts INTEGER DEFAULT 0,
         lock_until TIMESTAMP,
+        last_login TIMESTAMP,
+        last_password_change TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -62,6 +63,26 @@ const initializeDatabase = async () => {
   } catch (error) {
     console.error('Error initializing database:', error);
   }
+};
+
+// Rate limiting middleware
+const requestCounts = new Map();
+const rateLimiter = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const ip = req.ip;
+  const now = Date.now();
+  const windowStart = now - 60000; // 1 minute window
+  
+  const requestTimes = requestCounts.get(ip) || [];
+  const recentRequests = requestTimes.filter(time => time > windowStart);
+  
+  if (recentRequests.length >= config.security.maxRequestsPerMinute) {
+    return res.status(429).json({ message: 'Too many requests. Please try again later.' });
+  }
+  
+  recentRequests.push(now);
+  requestCounts.set(ip, recentRequests);
+  
+  next();
 };
 
 // Initialize database on startup
@@ -101,6 +122,9 @@ app.post('/signup', async (req, res) => {
     // Hash password
     const hashedPassword = await hashPassword(password);
     
+    // Generate verification token
+    const verificationToken = generatePasswordResetToken();
+    
     // Create new user
     const result = await pool.query(
       'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *', 
@@ -116,6 +140,9 @@ app.post('/signup', async (req, res) => {
     // Store refresh token in database
     await pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id]);
     
+    // Send verification email
+    await sendVerificationEmail(email, verificationToken, name);
+    
     // Return user data and tokens
     res.status(201).json({
       user: sanitizeUser(user),
@@ -128,7 +155,7 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-// Login
+// Login route with account locking
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   
@@ -174,7 +201,7 @@ app.post('/login', async (req, res) => {
     
     // Reset failed login attempts on successful login
     await pool.query(
-      'UPDATE users SET failed_login_attempts = 0, lock_until = NULL WHERE id = $1',
+      'UPDATE users SET failed_login_attempts = 0, lock_until = NULL, last_login = CURRENT_TIMESTAMP WHERE id = $1',
       [user.id]
     );
     

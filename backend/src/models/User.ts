@@ -1,4 +1,3 @@
-
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()
@@ -47,6 +46,12 @@ export class User {
 
   @Column({ nullable: true })
   lockUntil?: Date;
+
+  @Column({ nullable: true })
+  lastLogin?: Date;
+
+  @Column({ nullable: true })
+  lastPasswordChange?: Date;
 
   @CreateDateColumn()
   createdAt!: Date;

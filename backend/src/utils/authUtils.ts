@@ -1,4 +1,3 @@
-
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -13,6 +12,13 @@ export const hashPassword = async (password: string): Promise<string> => {
 // Compare password with hashed password from database
 export const comparePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
   return bcrypt.compare(password, hashedPassword);
+};
+
+// Add strong password validation
+export const isStrongPassword = (password: string): boolean => {
+  // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special character
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  return strongPasswordRegex.test(password);
 };
 
 // Generate JWT token for authenticated user

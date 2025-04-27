@@ -1,4 +1,3 @@
-
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -31,5 +30,7 @@ export default {
   security: {
     maxLoginAttempts: 5,
     lockTime: 15 * 60 * 1000, // 15 minutes in milliseconds
+    passwordRegex: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+    maxRequestsPerMinute: 60,
   }
 };
