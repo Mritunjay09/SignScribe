@@ -1,13 +1,15 @@
+
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Mail, User, UserPlus, Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { register } from "@/utils/authUtils";
 
-const  SignUp = () => {
+const SignUp = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -15,44 +17,40 @@ const  SignUp = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
   
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     
+    const navigate = useNavigate();
+    
+    const handleGoogleSignup = () => {
+      window.location.href = 'http://localhost:3000/auth/google';
+    };
+
+    const handleFacebookSignup = () => {
+      window.location.href = 'http://localhost:3000/auth/facebook';
+    };
+    
     const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault(); //Stops the page from refreshing
-      console.log("Form submitted:", { name, email, password, confirmPassword });
+      e.preventDefault();
+      setError(null);
+      setSuccess(null);
+      
       if (password !== confirmPassword) {
         setError("Passwords do not match.");
         return;
       }
   
+      setIsLoading(true);
       try {
-        // Make a POST request to the backend API for signup
-        // Replace with your actual API endpoint
-        const res = await fetch("http://localhost:3000/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
-        });
-        
-        const data = await res.json();
-  
-        if (!res.ok) {
-          setError(data.message || "Signup failed.");
-          setSuccess(null);
-        } else {
+        const result = await register(name, email, password);
+        if (result) {
           setSuccess("Account created successfully!");
-          setError(null);
-          // Clear fields if desired
-          setName("");
-          setEmail("");
-          setPassword("");
-          setConfirmPassword("");
+          navigate('/'); // Redirect to home page after successful registration
         }
-      } catch (err) {
-        setError("Something went wrong.");
-        setSuccess(null);
+      } finally {
+        setIsLoading(false);
       }
     };
   
@@ -89,6 +87,7 @@ const  SignUp = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -107,6 +106,7 @@ const  SignUp = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -125,11 +125,13 @@ const  SignUp = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                 <button
                     type="button"
-                    onClick = {()=> setShowPassword(!showPassword)}
+                    onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    disabled={isLoading}
                     >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -137,18 +139,20 @@ const  SignUp = () => {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
                   <Input
-                    id="password"
+                    id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm"
                     className="pl-10 w-full"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
-                    onClick = {()=> setShowConfirmPassword(!showConfirmPassword)}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    disabled={isLoading}
                     >
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -159,10 +163,39 @@ const  SignUp = () => {
             {error && <p className="text-red-500 text-sm">{error}</p>}
             {success && <p className="text-green-500 text-sm">{success}</p>}
 
-            <Button className="w-full bg-purple hover:bg-purple-dark" type="submit">
+            <Button 
+              className="w-full bg-purple hover:bg-purple-dark" 
+              type="submit"
+              disabled={isLoading}
+            >
               <UserPlus className="mr-2" size={20} />
-              Sign Up
+              {isLoading ? "Creating Account..." : "Sign Up"}
             </Button>
+            
+            <div className="relative flex items-center">
+              <div className="flex-grow border-t border-gray-300"></div>
+              <span className="mx-4 text-sm text-gray-500">Or continue with</span>
+              <div className="flex-grow border-t border-gray-300"></div>
+            </div>
+            
+            <div className="flex gap-4">
+              <Button 
+                className="w-1/2 bg-red-500 hover:bg-red-600" 
+                type="button"
+                onClick={handleGoogleSignup}
+                disabled={isLoading}
+              >
+                Google
+              </Button>
+              <Button 
+                className="w-1/2 bg-blue-600 hover:bg-blue-700" 
+                type="button"
+                onClick={handleFacebookSignup}
+                disabled={isLoading}
+              >
+                Facebook
+              </Button>
+            </div>
             
             <div className="text-center">
               <p className="text-slate text-sm">
