@@ -25,8 +25,8 @@ export const isStrongPassword = (password: string): boolean => {
 export const generateToken = (user: { id: number; email: string; role: string }): string => {
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role },
-    config.jwt.secret,
-    { expiresIn: config.jwt.expiresIn }
+    config.jwt.secret as string,
+    { expiresIn: config.jwt.expiresIn as string | number }
   );
 };
 
@@ -59,9 +59,3 @@ export const sanitizeUser = (user: any) => {
   return sanitizedUser;
 };
 
-// Validate password strength
-export const isStrongPassword = (password: string): boolean => {
-  // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special character
-  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  return strongPasswordRegex.test(password);
-};

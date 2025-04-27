@@ -73,7 +73,7 @@ const rateLimiter = (req: express.Request, res: express.Response, next: express.
   const windowStart = now - 60000; // 1 minute window
   
   const requestTimes = requestCounts.get(ip) || [];
-  const recentRequests = requestTimes.filter(time => time > windowStart);
+  const recentRequests: number[] = requestTimes.filter((time: number) => time > windowStart);
   
   if (recentRequests.length >= config.security.maxRequestsPerMinute) {
     return res.status(429).json({ message: 'Too many requests. Please try again later.' });
@@ -109,14 +109,16 @@ app.post('/signup', async (req, res) => {
     // Check if user already exists
     const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
-      return res.status(400).json({ message: 'User with this email already exists' });
+       res.status(400).json({ message: 'User with this email already exists' });
+       return;
     }
     
     // Validate password strength
     if (!isStrongPassword(password)) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character' 
       });
+      return;
     }
     
     // Hash password
@@ -163,7 +165,8 @@ app.post('/login', async (req, res) => {
     // Find user by email
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (result.rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      res.status(401).json({ message: 'Invalid credentials' });
+      return;
     }
     
     const user = result.rows[0];
@@ -171,9 +174,10 @@ app.post('/login', async (req, res) => {
     // Check if account is locked
     if (user.lock_until && new Date(user.lock_until) > new Date()) {
       const lockTimeRemaining = Math.ceil((new Date(user.lock_until).getTime() - new Date().getTime()) / 60000);
-      return res.status(403).json({ 
+      res.status(403).json({ 
         message: `Account is locked. Try again in ${lockTimeRemaining} minutes.` 
       });
+      return;
     }
     
     // Check if password is correct
@@ -193,10 +197,11 @@ app.post('/login', async (req, res) => {
         [failedAttempts, lockUntil, user.id]
       );
       
-      return res.status(401).json({ 
+      res.status(401).json({ 
         message: 'Invalid credentials',
         attemptsLeft: config.security.maxLoginAttempts - failedAttempts
       });
+      return;
     }
     
     // Reset failed login attempts on successful login
@@ -229,14 +234,16 @@ app.post('/refresh-token', async (req, res) => {
   const { refreshToken } = req.body;
   
   if (!refreshToken) {
-    return res.status(401).json({ message: 'Refresh token is required' });
+    res.status(401).json({ message: 'Refresh token is required' });
+    return;
   }
   
   try {
     // Verify refresh token
     const decoded = verifyRefreshToken(refreshToken);
     if (!decoded) {
-      return res.status(401).json({ message: 'Invalid refresh token' });
+      res.status(401).json({ message: 'Invalid refresh token' });
+      return;
     }
     
     // Find user by ID and check if refresh token matches
@@ -246,7 +253,8 @@ app.post('/refresh-token', async (req, res) => {
     );
     
     if (result.rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid refresh token' });
+      res.status(401).json({ message: 'Invalid refresh token' });
+      return;
     }
     
     const user = result.rows[0];
@@ -286,7 +294,8 @@ app.post('/forgot-password', async (req, res) => {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (result.rows.length === 0) {
       // For security reasons, don't reveal that the email doesn't exist
-      return res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+      res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+      return;
     }
     
     const user = result.rows[0];
@@ -324,16 +333,18 @@ app.post('/reset-password/:token', async (req, res) => {
     );
     
     if (result.rows.length === 0) {
-      return res.status(400).json({ message: 'Password reset token is invalid or has expired' });
+      res.status(400).json({ message: 'Password reset token is invalid or has expired' });
+      return;
     }
     
     const user = result.rows[0];
     
     // Validate password strength
     if (!isStrongPassword(password)) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character' 
       });
+      return;
     }
     
     // Hash new password
@@ -441,7 +452,8 @@ app.put('/admin/users/:id/role', authenticateJWT, authorizeRoles(['admin']), asy
   // Validate role
   const validRoles = ['user', 'admin', 'moderator'];
   if (!validRoles.includes(role)) {
-    return res.status(400).json({ message: 'Invalid role specified' });
+    res.status(400).json({ message: 'Invalid role specified' });
+    return;
   }
   
   try {
@@ -451,7 +463,8 @@ app.put('/admin/users/:id/role', authenticateJWT, authorizeRoles(['admin']), asy
     );
     
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: 'User not found' });
+      return;
     }
     
     res.status(200).json({ user: sanitizeUser(result.rows[0]) });

@@ -134,16 +134,18 @@ export const authenticateFacebook = passport.authenticate('facebook', { scope: [
 
 // Role-based authorization middleware
 export const authorizeRoles = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const user = req.user as any;
     
     if (!user) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
     }
     
     if (!roles.includes(user.role)) {
-      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
-    }
+       res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+       return;
+      }
     
     next();
   };
