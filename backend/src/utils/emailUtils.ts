@@ -6,8 +6,8 @@ import config from '../config';
 const transporter = nodemailer.createTransport({
   service: config.email.service,
   auth: {
-    user: config.email.user,
-    pass: config.email.pass,
+    user: config.email.auth.user,
+    pass: config.email.auth.pass,
   },
 });
 

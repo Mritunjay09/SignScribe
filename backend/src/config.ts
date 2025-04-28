@@ -2,6 +2,21 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export default {
+    // ... other config
+  email: {
+      service: process.env.EMAIL_SERVICE || 'Gmail', // 'SendGrid', 'Gmail' etc
+      host: process.env.EMAIL_HOST || 'gmail-smtp-in.l.google.com',
+      port: Number(process.env.EMAIL_PORT) || 25, // 587 for production
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.EMAIL_USER || '',
+        pass: process.env.EMAIL_PASS || '',
+      },
+      from: `"SignScribe" <${process.env.EMAIL_FROM || 'no-reply@signscribe.com'}>`,
+      tls: {
+        rejectUnauthorized: false // For self-signed certificates
+      }
+  },
   jwt: {
     secret: process.env.JWT_SECRET || 'your-default-jwt-secret-change-this',
     expiresIn: '15m', // Short-lived access token
@@ -20,12 +35,6 @@ export default {
   },
   frontend: {
     url: process.env.FRONTEND_URL || 'http://localhost:5173',
-  },
-  email: {
-    from: process.env.EMAIL_FROM || 'noreply@signscribe.com',
-    service: process.env.EMAIL_SERVICE || '',
-    user: process.env.EMAIL_USER || '',
-    pass: process.env.EMAIL_PASS || '',
   },
   security: {
     maxLoginAttempts: 5,

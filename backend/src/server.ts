@@ -135,7 +135,7 @@ app.post('/signup', authRateLimiter, async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
 
   try {
-    const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const existingUser = await pool.query('SELECT email FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
        res.status(400).json({ message: 'User with this email already exists' });
        return;
