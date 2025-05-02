@@ -33,7 +33,7 @@ const Login = () => {
           // Here we just note it in the UI
           toast.info("Session will expire after 24 hours");
         }
-        navigate('/'); // Redirect to home page after successful login
+        navigate('/profile'); // Redirect to home page after successful login
       }
     } finally {
       setIsLoading(false);

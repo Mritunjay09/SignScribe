@@ -125,11 +125,16 @@ export const login = async (email: string, password: string): Promise<{user: Use
     
     if (!response.ok) {
       const data = await response.json();
+
       // Special handling for locked accounts
       if (response.status === 403 && data.message.includes('locked')) {
         toast.error(data.message);
       } else if (response.status === 401 && data.attemptsLeft) {
-        toast.error(`${data.message}. You have ${data.attemptsLeft} attempt(s) left before your account is locked.`);
+        toast.error(`${data.message}`);
+        console.log(data)
+      } else if (response.status === 401 && data.attemptsLeft === 0){
+          toast.info("Login Failed")
+          toast.error("Your account is locked due to too many failed attempts. Please try again after 24 hours.")
       } else {
         toast.error(data.message || "Login failed");
       }

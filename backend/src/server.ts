@@ -14,6 +14,7 @@ import {
   generatePasswordResetToken,
   sanitizeUser,
   isStrongPassword,
+  verifyEmailFormat,
 } from './utils/authUtils';
 import { sendPasswordResetEmail, sendVerificationEmail } from './utils/emailUtils';
 import { upload } from './utils/uploadUtils';
@@ -148,9 +149,16 @@ app.post('/signup', authRateLimiter, async (req: Request, res: Response) => {
       });
       return;
     }
+    if (!verifyEmailFormat(email)) {
+      res.status(400).json({
+        message:
+          'Email Format is invaild',
+      });
+      return;
+    }
 
     const hashedPassword = await hashPassword(password);
-    const verificationToken = generatePasswordResetToken();
+    //const verificationToken = generatePasswordResetToken();
 
     const result = await pool.query(
       'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *',
@@ -163,7 +171,7 @@ app.post('/signup', authRateLimiter, async (req: Request, res: Response) => {
 
     await pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id]);
 
-    await sendVerificationEmail(email, verificationToken, name);
+    //await sendVerificationEmail(email, verificationToken, name);
 
     res.status(201).json({
       user: sanitizeUser(user),

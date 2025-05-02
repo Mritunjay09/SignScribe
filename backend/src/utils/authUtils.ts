@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import config from '../config';
 import { User } from '../models/User';
+import {MxRecord, promises} from 'node:dns';
 
 export const hashPassword = async (password: string): Promise<string> => {
   return bcrypt.hash(password, 10);
@@ -45,6 +46,21 @@ export const verifyRefreshToken = async (token: string): Promise<{ id: number }>
 
 export const generatePasswordResetToken = (): string => {
   return crypto.randomBytes(32).toString('hex');
+};
+
+//check email format
+export const verifyEmailFormat = async(email:string) => {
+  const regex = new RegExp('[a-z0-9._-]+@[a-z0-9-]+\.[a-z]{2,3}','i')
+  return regex.test(email)
+};
+
+export const resolveMxRecords = async(domain:string): Promise<MxRecord[]>=> {
+  try {
+    return await promises.resolveMx(domain)
+  } catch (error) {
+    console.error(error)
+    return []
+  }
 };
 
 export const isStrongPassword = (password: string): boolean => {

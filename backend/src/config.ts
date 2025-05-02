@@ -4,24 +4,22 @@ dotenv.config();
 export default {
     // ... other config
   email: {
-      service: process.env.EMAIL_SERVICE || 'Gmail', // 'SendGrid', 'Gmail' etc
-      host: process.env.EMAIL_HOST || 'gmail-smtp-in.l.google.com',
-      port: Number(process.env.EMAIL_PORT) || 25, // 587 for production
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.EMAIL_USER || '',
-        pass: process.env.EMAIL_PASS || '',
-      },
-      from: `"SignScribe" <${process.env.EMAIL_FROM || 'no-reply@signscribe.com'}>`,
-      tls: {
-        rejectUnauthorized: false // For self-signed certificates
-      }
+    service: process.env.EMAIL_SERVICE || 'Gmail', // Use 'Gmail' for simplicity
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || '587', 10), // Safer parsing
+    secure: (process.env.EMAIL_PORT || '587') === '465', // True for 465, false for 587
+    auth: {
+      user: process.env.EMAIL_USER || (() => { throw new Error('EMAIL_USER is required'); })(),
+      pass: process.env.EMAIL_PASS || (() => { throw new Error('EMAIL_PASS is required'); })(),
+    },
+    from: `"SignScribe" <${process.env.EMAIL_USER || 'no-reply@signscribe.com'}>`, // Match EMAIL_USER for Gmail
+    // Omit tls for Gmail; add conditionally for other providers if needed
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'your-default-jwt-secret-change-this',
     expiresIn: '15m', // Short-lived access token
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-token-secret-change-this',
-    refreshExpiresIn: '7d', // Refresh token lasts longer
+    refreshExpiresIn: '30d', // Refresh token lasts longer
   },
   google: {
     clientID: process.env.GOOGLE_CLIENT_ID || '',
